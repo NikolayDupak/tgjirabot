@@ -1,0 +1,5 @@
+{
+  "server": "http://site.atlassian.net",
+  "username":"address@example.ru",
+  "password": "token"
+}
