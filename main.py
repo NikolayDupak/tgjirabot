@@ -3,109 +3,92 @@ from jira import JIRA
 import re
 from jira.client import JIRA
 import json
+from Issue import Issue
+from time import sleep
 
-def get_all_project(jira):
-    projects = jira.projects()
+import logging
 
-    for v in projects:
-        print(v)
-    return projects
+from telegram.ext import Updater, CommandHandler
+
+# Enable logging
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    level=logging.INFO)
+
+logger = logging.getLogger(__name__)
 
 
-def get_all_issues(jira_client, project_name, fields):
-    issues = []
-    i = 0
-    chunk_size = 100
-    while True:
-        chunk = jira_client.search_issues(f'project = {project_name}', startAt=i, maxResults=chunk_size,
-                                          fields=fields)
-        i += chunk_size
-        issues += chunk.iterable
-        if i >= chunk.total:
-            break
-    return issues
+# Define a few command handlers. These usually take the two arguments update and
+# context. Error handlers also receive the raised TelegramError object in error.
+def start(update, context):
+    update.message.reply_text('Start')
 
-def get_all_comments(jira_issue, issue):
-    issue = jira_issue.issue(issue, fields='comment')
-    # print(issue)
-    comments = issue.fields.comment.comments
-    # print(comments)
-    # for comment in comments:
-    #     print("Comment text : ", comment.body)
-    return comments
+
+def send_message(context):
+    """Send the alarm message."""
+    if context.chat_data is not None:
+        chat_id = context.chat_data['chat_id']
+        context.bot.send_message(chat_id, text='Beep!')
+
+
+def subscribe(update, context):
+    """Add a job to the queue."""
+    chat_id = update.message.chat_id
+
+    context.chat_data['chat_id'] = chat_id
+
+    update.message.reply_text('Subscribe')
+
+
+def unsubscribe(update, context):
+    """Remove the job if the user changed their mind."""
+    if 'chat_id' not in context.chat_data:
+        update.message.reply_text('You didn\'t subscribe')
+        return
+
+    del context.chat_data['chat_id']
+
+    update.message.reply_text('You unsubscribe')
+
 
 def main():
     print(__name__)
     login = dict()
-    file_name = "login.json" # use login_example.json with your name/pass
+    file_name = "login.json"  # use login_example.json with your name/pass
     with open(file_name, "r") as read_file:
         login = json.load(read_file)
 
+    myIssues = Issue(login["server"], login["username"], login["password"])
 
-
-    jira = JIRA(options={'server': login["server"]},
-                basic_auth=(login["username"], login["password"]))
-
-
-
-
-
-    issues = get_all_issues(jira, 'TEST', ["comment"])
-    """
-    ''' find all comments in all projects '''
-    
-    projects = get_all_project(jira)
-    for project in projects:
-        print(project)
-        issues = get_all_issues(jira, project,  fields='comment')
-
-        for issue in issues:
-            print(issue)
-            comments = get_all_comments(jira, issue)
-            #print(comments)
-            for comment in comments:
-                print("Comment text : ", comment.body)
-    #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    """
-    #open_issues = jira.search_issues(
-    #    'assignee=NikolayDupak', fields='comment')
-
-
+    while True:
+        myIssues.update()
+        myIssues.print()
+        sleep(10)
 
     '''
-    task_name - summary # имя задания 
-    assignee - исполнитель(id, email)
-                - displayName
-    comment 
-            - author 
-                    - displayName
-            - body - comment text
-            
-    project - name
-    
-    description - описание задания
-    '''
-    from Issue import Issue
-    issues = Issue
-    for i in issues.issues:
+    """Run bot."""
+    # Create the Updater and pass it your bot's token.
+    # Make sure to set use_context=True to use the new context based callbacks
+    # Post version 12 this will no longer be necessary
+    updater = Updater(login['token'], use_context=True)
 
-    print(open_issues)
-    for i in open_issues:
-        print(i.raw['fields'])
-    exit(0)
+    # Get the dispatcher to register handlers
+    dp = updater.dispatcher
 
-    comm = ([issue.raw['fields']['comment']['comments'] for issue in open_issues])
-    print(comm)
-    for text in comm:
-        if len(text) != 0:
-            for message in text:
-                print(message["body"])
-    # print(a)
+    # on different commands - answer in Telegram
+    dp.add_handler(CommandHandler("start", start))
+    dp.add_handler(CommandHandler("help", start))
+    dp.add_handler(CommandHandler("on", subscribe,
+                                  pass_chat_data=True))
+    dp.add_handler(CommandHandler("off", unsubscribe, pass_chat_data=True))
 
-    # Find the top three projects containing issues reported by admin
-    # top_three = Counter([issue.fields.project.key for issue in issues]).most_common(3)
-    # print(top_three)
+    # Start the Bot
+    updater.start_polling()
 
+    # Block until you press Ctrl-C or the process receives SIGINT, SIGTERM or
+    # SIGABRT. This should be used most of the time, since start_polling() is
+    # non-blocking and will stop the bot gracefully.
+    updater.idle()
+'''
 
 if __name__ == '__main__':
     main()
