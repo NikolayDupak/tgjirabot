@@ -45,6 +45,41 @@ class Issue:
                     print(f'New comment: {comm_text}\n'
                           f'from - {comm_author}')
 
+    def get_issues(self):
+        new_issues = dict()
+        for key, issue in self.all_issues.items():
+            # print(f'Issue name - {issue.get_issue_name()}')
+            new_issues.update(key, issue)
+        return new_issues
+        '''
+            while issue.have_new_comments():
+
+                new_comm = issue.get_new_comment()
+                if self.find_nickname(new_comm):
+                    comm_text = new_comm['text']
+                    comm_author = new_comm['author']
+                    print(f'Issue name - {issue.get_issue_name()}')
+                    print(f'New comment: {comm_text}\n'
+                          f'from - {comm_author}')
+'''
+
+    def get_comments(self):
+        new_comments = list()
+        for key, issue in self.all_issues.items():
+            # print(f'Issue name - {issue.get_issue_name()}')
+            while issue.have_new_comments():
+
+                new_comm = issue.get_new_comment()
+                if self.find_nickname(new_comm):
+                    comm_text = new_comm['text']
+                    comm_author = new_comm['author']
+                    result = f'Issue name - {issue.get_issue_name()}\n' \
+                             f'New comment: {comm_text}\n' \
+                             f'from - {comm_author}'
+                    new_comments.append(result)
+        return new_comments
+
+
     def find_nickname(self, comment):
         comment_text = str(comment['text'])
         if comment_text.find(self.account_id) != -1:
