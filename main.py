@@ -49,7 +49,7 @@ def subscribe(update, context):
     chat_id = update.message.chat_id
 
     # context.chat_data['chat_id'] = chat_id
-    new_job = context.job_queue.run_repeating(send_message, 10, context=chat_id)
+    new_job = context.job_queue.run_repeating(send_message, 5, context=chat_id)
     context.chat_data['job'] = new_job
 
 
